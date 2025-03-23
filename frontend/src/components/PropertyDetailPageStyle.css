@@ -1,0 +1,48 @@
+
+/* Property Information Section Styling */
+.property-info {
+    margin-top: 2rem;
+    padding: 1.5rem;
+    border: 1px solid #ddd;
+    border-radius: 12px;
+    background: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Property Information Text Styling */
+.property-info p {
+    font-size: 1.2rem;
+    color: #333;
+    line-height: 1.8;
+    margin: 0.8rem 0;
+    letter-spacing: 0.5px;
+    font-weight: 500;
+}
+
+.property-info p strong {
+    color: #000;
+    font-weight: 700;
+    margin-right: 0.5rem;
+    letter-spacing: 0.7px;
+}
+
+/* Emphasize Key Information */
+.property-info p:nth-child(2) strong {
+    color: #28a745;  /* Green for Price */
+    font-size: 1.3rem;
+}
+
+.property-info p:nth-child(3) strong {
+    color: #dc3545;  /* Red for Location */
+    font-size: 1.3rem;
+}
+
+.property-info p:nth-child(4) strong {
+    color: #007BFF;  /* Blue for Description */
+    font-size: 1.3rem;
+}
+
+/* Smoother Font for Better Readability */
+body {
+    font-family: 'Arial', sans-serif;
+}
