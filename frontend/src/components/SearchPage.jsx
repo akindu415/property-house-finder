@@ -1,6 +1,6 @@
 // src/pages/SearchPage.jsx
-import React, { useState } from 'react';
-import propertyData from '../data/properties.json';
+import React, { useState, useEffect } from 'react';
+import { api } from '../services/api';
 import 'react-datepicker/dist/react-datepicker.css';
 import { useDrag, useDrop } from 'react-dnd';
 import DatePicker from 'react-datepicker';
@@ -70,87 +70,100 @@ function SearchPage() {
     const [afterDate, setAfterDate] = useState('');
     const [postcode, setPostcode] = useState('');
     const [favouriteProperties, setFavouriteProperties] = useState([]);
+    const [properties, setProperties] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
-    // All properties from JSON data
-    const allProperties = propertyData.properties;
+    // Fetch properties when component mounts
+    useEffect(() => {
+        const fetchProperties = async () => {
+            try {
+                const data = await api.getAllProperties();
+                setProperties(data);
+            } catch (err) {
+                setError('Failed to fetch properties');
+                console.error(err);
+            } finally {
+                setLoading(false);
+            }
+        };
 
-    
+        fetchProperties();
+    }, []);
 
     // Filtering properties based on criteria
     const getFilteredProperties = () => {
-      return allProperties.filter((prop) => {
-        // 3.1 Filter by type
-        if (type !== 'any' && prop.type.toLowerCase() !== type.toLowerCase()) {
-          return false;
-        }
-  
-        // 3.2 Filter by price range
-        if (minPrice && prop.price < Number(minPrice)) {
-          return false;
-        }
-        if (maxPrice && prop.price > Number(maxPrice)) {
-          return false;
-        }
-  
-        // 3.3 Filter by bedrooms range
-        if (minBedrooms && prop.bedrooms < Number(minBedrooms)) {
-          return false;
-        }
-        if (maxBedrooms && prop.bedrooms > Number(maxBedrooms)) {
-          return false;
-        }
-  
-        // 3.4 Filter by date
-        if (afterDate) {
-          const afterDateObj = new Date(afterDate); // user’s date
-          const propertyDateObj = convertToDate(prop.added);
-  
-          // Only include if propertyDateObj >= afterDateObj
-          if (propertyDateObj < afterDateObj) {
-            return false;
-          }
-        }
-  
-        // 3.5 Filter by postcode
-        if (postcode && prop.Postcode) {
-          if (!prop.Postcode.toUpperCase().startsWith(postcode.toUpperCase())) {
-              return false;
-          }
-      }
-  
-        return true; // If all filters pass
-      });
-  
+        return properties.filter((prop) => {
+            // 3.1 Filter by type
+            if (type !== 'any' && prop.type.toLowerCase() !== type.toLowerCase()) {
+                return false;
+            }
+
+            // 3.2 Filter by price range
+            if (minPrice && prop.price < Number(minPrice)) {
+                return false;
+            }
+            if (maxPrice && prop.price > Number(maxPrice)) {
+                return false;
+            }
+
+            // 3.3 Filter by bedrooms range
+            if (minBedrooms && prop.bedrooms < Number(minBedrooms)) {
+                return false;
+            }
+            if (maxBedrooms && prop.bedrooms > Number(maxBedrooms)) {
+                return false;
+            }
+
+            // 3.4 Filter by date
+            if (afterDate) {
+                const afterDateObj = new Date(afterDate);
+                const propertyDateObj = convertToDate(prop.added);
+
+                if (propertyDateObj < afterDateObj) {
+                    return false;
+                }
+            }
+
+            // 3.5 Filter by postcode
+            if (postcode && prop.Postcode) {
+                if (!prop.Postcode.toUpperCase().startsWith(postcode.toUpperCase())) {
+                    return false;
+                }
+            }
+
+            return true;
+        });
     };
 
-     // Helper to convert {year, month, day} to a real JS Date
-  const convertToDate = ({ year, month, day }) => {
-    // A small helper to convert month name to index, or handle numeric months
-    const monthMap = {
-      January: 0,
-      February: 1,
-      March: 2,
-      April: 3,
-      May: 4,
-      June: 5,
-      July: 6,
-      August: 7,
-      September: 8,
-      October: 9,
-      November: 10,
-      December: 11
+    // Helper to convert {year, month, day} to a real JS Date
+    const convertToDate = ({ year, month, day }) => {
+        // A small helper to convert month name to index, or handle numeric months
+        const monthMap = {
+            January: 0,
+            February: 1,
+            March: 2,
+            April: 3,
+            May: 4,
+            June: 5,
+            July: 6,
+            August: 7,
+            September: 8,
+            October: 9,
+            November: 10,
+            December: 11
+        };
+
+        let monthIndex;
+        if (typeof month === 'string') {
+            monthIndex = monthMap[month] ?? 0; // default to 0 if month not found
+        } else {
+            // If it's already a number, might need to subtract 1 if data has 1 for January
+            monthIndex = Number(month) - 1; 
+        }
+
+        return new Date(year, monthIndex, day);
     };
-
-    let monthIndex;
-    if (typeof month === 'string') {
-      monthIndex = monthMap[month] ?? 0; // default to 0 if month not found
-    } else {
-      // If it's already a number, might need to subtract 1 if data has 1 for January
-      monthIndex = Number(month) - 1; 
-    }
-
-    return new Date(year, monthIndex, day);
-  };
 
     const filteredProperties = getFilteredProperties();
 
@@ -166,10 +179,10 @@ function SearchPage() {
 
     // Remove from Favourites
     const handleRemoveFavourite = (propertyId) => {
-      const updatedFavourites = favouriteProperties.filter((fav) => fav.id !== propertyId);
-      setFavouriteProperties(updatedFavourites);
-      localStorage.setItem('myfavourites', JSON.stringify(updatedFavourites));
-  };
+        const updatedFavourites = favouriteProperties.filter((fav) => fav.id !== propertyId);
+        setFavouriteProperties(updatedFavourites);
+        localStorage.setItem('myfavourites', JSON.stringify(updatedFavourites));
+    };
 
     // Drop zone for drag-and-drop
     const [, drop] = useDrop(() => ({
@@ -229,16 +242,21 @@ function SearchPage() {
 
             {/* === Right Column: Property Listings === */}
             <div>
-                
-                <div className="property-gallery">
-                    {filteredProperties.map((prop) => (
-                        <PropertyCard
-                            key={prop.id}
-                            property={prop}
-                            handleAddFavourite={handleAddFavourite}
-                        />
-                    ))}
-                </div>
+                {loading ? (
+                    <div>Loading properties...</div>
+                ) : error ? (
+                    <div>Error: {error}</div>
+                ) : (
+                    <div className="property-gallery">
+                        {filteredProperties.map((prop) => (
+                            <PropertyCard
+                                key={prop.id}
+                                property={prop}
+                                handleAddFavourite={handleAddFavourite}
+                            />
+                        ))}
+                    </div>
+                )}
             </div>
 
             {/* === Favourites Section with Drag-and-Drop === */}

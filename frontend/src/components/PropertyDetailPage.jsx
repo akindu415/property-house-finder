@@ -1,26 +1,49 @@
-
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import propertyData from '../data/properties.json';
+import { api } from '../services/api';
 import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
 import 'react-tabs/style/react-tabs.css';
 
 // Property Detail Page Component
 function PropertyDetailPage() {
-    const { id } = useParams(); 
-    const property = propertyData.properties.find(prop => prop.id === id);
+    const { id } = useParams();
+    const [property, setProperty] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
-    // If property is not found return property not found message
-    if (!property) {
-        return <h2>Property Not Found</h2>;
-    }
+    useEffect(() => {
+        const fetchProperty = async () => {
+            try {
+                const data = await api.getProperty(id);
+                // Transform the data to match the expected structure
+                const transformedData = {
+                    ...data,
+                    title: data.type, // Use type as title since we don't have a title field
+                    AllPics: data.images.map(img => img.url), // Convert images array to AllPics
+                    FloorPlan: data.FloorPlan || '/plans/default.webp', // Provide default if not available
+                };
+                setProperty(transformedData);
+            } catch (err) {
+                setError('Failed to fetch property details');
+                console.error(err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchProperty();
+    }, [id]);
+
+    if (loading) return <div>Loading...</div>;
+    if (error) return <div>{error}</div>;
+    if (!property) return <div>Property Not Found</div>;
 
     return (
         <div style={{ padding: '20px' }}>
-            <h1>{property.title}</h1>
+            <h1>{property.type} in {property.location}</h1>
 
             {/* Display main property picture */}
-            <img src={property.picture} alt={property.title} style={{ maxWidth: '600px' }} />
+            <img src={property.picture} alt={property.type} style={{ maxWidth: '600px' }} />
 
             {/* Display all property pictures */}
             <div className="gallery-container">
@@ -38,8 +61,8 @@ function PropertyDetailPage() {
             <p><strong>Type:</strong> {property.type}</p>
             <p><strong>Price:</strong> £{property.price}</p>
             <p><strong>Location:</strong> {property.location}</p>
-            <p><strong>Bedrooms:</strong>{property.bedrooms}</p>
-            
+            <p><strong>Bedrooms:</strong> {property.bedrooms}</p>
+            <p><strong>Tenure:</strong> {property.tenure}</p>
             
             {/* React Tabs Section */}
             <Tabs>
